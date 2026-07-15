@@ -1,4 +1,4 @@
-const CACHE = 'lost-ipad-flat-v1';
+const CACHE = 'lost-ipad-flat-v2';
 const ASSETS = [
   './lost-ipad.html',
   './lost-ipad.webmanifest',
