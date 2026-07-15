@@ -1,24 +1,21 @@
-const CACHE = 'lost-ipad-flat-v2';
-const ASSETS = [
-  './lost-ipad.html',
-  './lost-ipad.webmanifest',
-  './lost-ipad-favicon.png',
-  './lost-ipad-apple-touch-icon.png',
-  './lost-ipad-icon-192.png',
-  './lost-ipad-icon-512.png'
-];
-self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+// 旧キャッシュを解除するための移行用Service Workerです。
+// lost-ipad.html側では新規登録しないため、解除後は通常のWebページとして動作します。
+self.addEventListener('install', function (event) {
+  self.skipWaiting();
 });
-self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim()));
-});
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin || event.request.method !== 'GET') return;
-  event.respondWith(fetch(event.request).then(response => {
-    const copy = response.clone();
-    caches.open(CACHE).then(cache => cache.put(event.request, copy));
-    return response;
-  }).catch(() => caches.match(event.request)));
+
+self.addEventListener('activate', function (event) {
+  event.waitUntil((async function () {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(function (key) {
+      return key.indexOf('lost-ipad') === 0;
+    }).map(function (key) {
+      return caches.delete(key);
+    }));
+    await self.registration.unregister();
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientsList) {
+      try { await client.navigate(client.url); } catch (e) {}
+    }
+  })());
 });
